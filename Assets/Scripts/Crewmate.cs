@@ -1,113 +1,132 @@
-using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
 
-public class Crewmate : AgentBase
+public class Crewmate : MonoBehaviour
 {
-    public enum State { Idle, MoveToTask, PerformingTask, Flee }
-    public State state = State.Idle;
+    [Header("Movimiento y bÃºsqueda")]
+    public float moveSpeed = 3f;
+    public float baseSearchRadius = 4f;
+    public float maxSearchRadius = 10f;
+    public float searchIncreaseRate = 1f; // cuanto crece el radio por segundo
+    public float avoidDistance = 0.5f;
+    public LayerMask wallLayer;
+    public LayerMask stationLayer;
 
-    [Header("Crewmate")]
-    public LayerMask agentMask;
-    public float fleeDuration = 3f;
-    public float taskSeekRadius = 8f;
+    [Header("Tareas")]
+    public int totalTasks = 4;
+    public float taskDuration = 2f;
 
+    private Rigidbody2D rb;
+    private Vector2 moveDir;
     private TaskStation currentStation;
-    private float fleeTimer = 0f;
-    private Vector2 roamTarget;
+    private int completedTasks = 0;
+    private float currentSearchRadius;
+    private bool doingTask = false;
+    private HashSet<TaskStation> completedStations = new HashSet<TaskStation>();
 
     void Start()
     {
-        PickNewRoamTarget();
+        rb = GetComponent<Rigidbody2D>();
+        PickRandomDirection();
+        currentSearchRadius = baseSearchRadius;
     }
 
-    public override void Simulate()
+    void FixedUpdate()
     {
-        // simple FSM
-        switch (state)
+        if (doingTask || completedTasks >= totalTasks)
+            return;
+
+        SearchForStations();
+        MoveAndAvoidWalls();
+    }
+
+    void SearchForStations()
+    {
+        // Buscar estaciones dentro del radio
+        Collider2D[] stations = Physics2D.OverlapCircleAll(transform.position, currentSearchRadius, stationLayer);
+        TaskStation nearest = null;
+        float minDist = Mathf.Infinity;
+
+        foreach (var col in stations)
         {
-            case State.Idle:
-                // Buscar estación cercana y libre
-                GameObject nearestStation = Simulate.Instance.FindNearestAvailableTaskStation(transform.position);
-
-                if (nearestStation != null)
+            TaskStation station = col.GetComponent<TaskStation>();
+            if (station != null && !station.isOccupied && !completedStations.Contains(station))
+            {
+                float dist = Vector2.Distance(transform.position, col.transform.position);
+                if (dist < minDist)
                 {
-                    currentStation = nearestStation;
-                    state = State.MoveToTask;
+                    minDist = dist;
+                    nearest = station;
                 }
-                else
-                {
-                    // Moverse aleatoriamente
-                    MoveTowards(roamTarget);
-                    if (Vector2.Distance(transform.position, roamTarget) < 0.3f)
-                        PickNewRoamTarget();
-                }
-                break;
+            }
+        }
 
-            case State.MoveToTask:
-                if (currentStation == null)
-                {
-                    state = State.Idle;
-                    break;
-                }
+        if (nearest != null)
+        {
+            // Reinicia radio de bÃºsqueda
+            currentSearchRadius = baseSearchRadius;
+            // DirÃ­gete hacia la estaciÃ³n
+            moveDir = ((Vector2)nearest.transform.position - rb.position).normalized;
 
-                MoveTowards(currentStation.transform.position);
-
-                if (Vector2.Distance(transform.position, currentStation.transform.position) < 0.7f)
-                {
-                    // Intentar entrar en slot
-                    if (currentStation.TryEnter())
-                    {
-                        StopMoving();
-                        StartCoroutine(PerformAtStation(currentStation));
-                        state = State.PerformingTask;
-                    }
-                    else
-                    {
-                        // Estación ocupada: busca otra o espera
-                        currentStation = null;
-                        state = State.Idle;
-                    }
-                }
-                break;
-
-            case State.PerformingTask:
-                // Aquí se puede chequear si vio una eliminación
-                break;
-
-            case State.Flee:
-                // Huyendo de la posición del traidor
-                fleeTimer -= Time.deltaTime;
-                if (fleeTimer <= 0)
-                    state = State.Idle;
-                break;
+            // Si estÃ¡ suficientemente cerca, inicia tarea
+            if (Vector2.Distance(transform.position, nearest.transform.position) < 0.5f)
+            {
+                StartCoroutine(DoTask(nearest));
+            }
+        }
+        else
+        {
+            // No encontrÃ³ estaciones: aumenta radio y sigue explorando
+            currentSearchRadius = Mathf.Min(currentSearchRadius + searchIncreaseRate * Time.fixedDeltaTime, maxSearchRadius);
         }
     }
 
-    IEnumerator PerformAtStation(TaskStation station)
+    IEnumerator DoTask(TaskStation station)
     {
-        yield return station.PerformTask(() => {
-            // tarea completada: notificar a SimulateManager
-            SimulateManager.Instance.ReportTaskCompleted();
-        });
-        station.Leave();
+        doingTask = true;
+        currentStation = station;
+        station.isOccupied = true;
+
+        yield return new WaitForSeconds(taskDuration);
+
+        station.isOccupied = false;
+        completedTasks++;
+        completedStations.Add(station);
         currentStation = null;
-        state = State.Idle;
+        doingTask = false;
+
+        // Elige nueva direcciÃ³n aleatoria para continuar explorando
+        PickRandomDirection();
     }
 
-    void PickNewRoamTarget()
+    void MoveAndAvoidWalls()
     {
-        Vector2 random = (Vector2)transform.position + Random.insideUnitCircle * 4f;
-        roamTarget = random;
+        // DetecciÃ³n de pared
+        RaycastHit2D hit = Physics2D.Raycast(transform.position, moveDir, avoidDistance, wallLayer);
+        if (hit.collider != null)
+        {
+            // Gira para evitar
+            float turnAngle = Random.value > 0.5f ? 90f : -90f;
+            moveDir = Quaternion.Euler(0, 0, turnAngle) * moveDir;
+        }
+
+        rb.MovePosition(rb.position + moveDir * moveSpeed * Time.fixedDeltaTime);
     }
 
-    // llamado por SimulateManager cuando otro vio una eliminación
-    public void OnWitnessKill(Vector2 threatPos)
+    void PickRandomDirection()
     {
-        // iniciar huida: moverse en sentido opuesto
-        Vector2 dirAway = ((Vector2)transform.position - threatPos).normalized;
-        Vector2 fleePoint = (Vector2)transform.position + dirAway * 5f;
-        MoveTowards(fleePoint);
-        state = State.Flee;
-        fleeTimer = fleeDuration;
+        float angle = Random.Range(0f, 360f);
+        moveDir = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+    }
+
+    void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.cyan;
+        Gizmos.DrawWireSphere(transform.position, currentSearchRadius);
     }
 }
+
+
+
+

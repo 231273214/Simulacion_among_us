@@ -1,66 +1,46 @@
-using System.Collections.Generic;
 using UnityEngine;
+using System.Collections.Generic;
+using System.Linq;
 
 public class Simulate : MonoBehaviour
 {
-    // --- Singleton ---
     public static Simulate Instance { get; private set; }
 
-    // Lista de todas las estaciones de tareas registradas
-    public List<TaskStation> taskStations = new List<TaskStation>();
+    private List<TaskStation> allStations = new List<TaskStation>();
 
     void Awake()
     {
-        // Configurar Singleton
-        if (Instance != null && Instance != this)
-        {
-            Destroy(gameObject);
-        }
-        else
-        {
-            Instance = this;
-        }
+        Instance = this;
+        // Buscar todas las estaciones en la escena
+        allStations = Object.FindObjectsByType<TaskStation>(FindObjectsSortMode.None).ToList();
     }
 
-    // --- Registro de estaciones ---
-    public void RegisterStation(TaskStation station)
+    // Retorna la estación libre más cercana a una posición
+    public TaskStation FindNearestAvailableTaskStation(Vector3 fromPosition)
     {
-        if (!taskStations.Contains(station))
+        TaskStation nearest = null;
+        float minDist = Mathf.Infinity;
+
+        foreach (var station in allStations)
         {
-            taskStations.Add(station);
-        }
-    }
+            if (station.isOccupied) continue; // usamos isOccupied en lugar de IsOccupied
 
-    public void UnregisterStation(TaskStation station)
-    {
-        if (taskStations.Contains(station))
-        {
-            taskStations.Remove(station);
-        }
-    }
-
-    // --- Buscar estación disponible más cercana ---
-    public GameObject FindNearestAvailableTaskStation(Vector2 fromPosition)
-    {
-        GameObject nearest = null;
-        float nearestDistance = Mathf.Infinity;
-
-        foreach (var station in taskStations)
-        {
-            if (station == null) continue;
-
-            // Verificar si está disponible
-            if (!station.IsAvailable()) continue;
-
-            float distance = Vector2.Distance(fromPosition, station.transform.position);
-
-            if (distance < nearestDistance)
+            float dist = Vector3.Distance(fromPosition, station.transform.position);
+            if (dist < minDist)
             {
-                nearest = station.gameObject;
-                nearestDistance = distance;
+                minDist = dist;
+                nearest = station;
             }
         }
 
         return nearest;
+    }
+
+    // Método auxiliar (opcional): obtener estaciones aleatorias libres
+    public TaskStation GetRandomAvailableStation()
+    {
+        var available = allStations.Where(s => !s.isOccupied).ToList();
+        if (available.Count == 0) return null;
+        return available[Random.Range(0, available.Count)];
     }
 }

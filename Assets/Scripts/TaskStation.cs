@@ -2,39 +2,30 @@ using UnityEngine;
 
 public class TaskStation : MonoBehaviour
 {
-    private bool occupied = false;
+    [HideInInspector] public bool isOccupied = false;
+    private Crewmate occupant;
 
-    void Start()
+    // Intenta asignar un tripulante a esta estación
+    public bool TryOccupy(Crewmate crewmate)
     {
-        // Registrar esta estación en el Simulate
-        Simulate.Instance.RegisterStation(this);
+        if (isOccupied) return false; // si ya está ocupada, no se puede
+
+        isOccupied = true;
+        occupant = crewmate;
+        return true;
     }
 
-    void OnDestroy()
+    // Libera la estación para que otro tripulante pueda usarla
+    public void Release()
     {
-        // Si se elimina, quitarla del registro
-        if (Simulate.Instance != null)
-            Simulate.Instance.UnregisterStation(this);
+        isOccupied = false;
+        occupant = null;
     }
 
-    // --- IMPORTANTE ---
-    public bool IsAvailable()
+    // Comprueba si una estación ya fue completada por un tripulante específico
+    public bool IsCompletedBy(Crewmate crewmate)
     {
-        return !occupied;
-    }
-
-    public bool TryEnter()
-    {
-        if (!occupied)
-        {
-            occupied = true;
-            return true;
-        }
-        return false;
-    }
-
-    public void Leave()
-    {
-        occupied = false;
+        return occupant == crewmate; // por ahora simple, luego podemos expandir
     }
 }
+

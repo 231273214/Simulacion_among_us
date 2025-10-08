@@ -68,12 +68,12 @@ public class SimulateManager : MonoBehaviour
             Crewmate c = col.GetComponent<Crewmate>();
             if (c != null)
             {
-                c.OnWitnessKill(pos);
+                // c.OnWitnessKill(pos);
             }
         }
 
         // remover del registro
-        if (victim != null) UnregisterAgent(victim);
+        // if (victim != null) UnregisterAgent(victim);
 
         // evaluar si traidores ganan
     }
