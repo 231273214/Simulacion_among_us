@@ -1,102 +1,248 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-public class SimulateManager : MonoBehaviour
+/// <summary>
+/// Gestor principal de la simulación.
+/// Controla la creación de tripulantes, impostores y estaciones.
+/// </summary>
+public class SimulationManager : MonoBehaviour
 {
-    public static SimulateManager Instance { get; private set; }
+    [Header("Prefabs")]
+    [SerializeField] private GameObject crewMatePrefab;
+    [SerializeField] private GameObject impostorPrefab;
+    [SerializeField] private GameObject taskStationPrefab;
 
-    [Header("Settings")]
-    public List<AgentBase> agents = new List<AgentBase>();
-    public List<TaskStation> stations = new List<TaskStation>();
-    public int totalTasks = 10;
-    private int tasksCompleted = 0;
-    public int numTraitors = 1;
+    [Header("Configuración de Spawn")]
+    [SerializeField] private int numberOfCrewMates = 8;
+    [SerializeField] private int numberOfImpostors = 2;
+    [SerializeField] private int numberOfTaskStations = 6;
+    [SerializeField] private Vector2 spawnAreaMin = new Vector2(-20, -20);
+    [SerializeField] private Vector2 spawnAreaMax = new Vector2(20, 20);
+    [SerializeField] private LayerMask obstacleLayer;
 
-    
-    public LayerMask crewmateLayerMask;
+    [Header("Referencias")]
+    [SerializeField] private Transform crewMatesParent;
+    [SerializeField] private Transform impostorsParent;
+    [SerializeField] private Transform stationsParent;
 
-    void Awake()
+    private List<Crewmate> allCrewMates = new List<Crewmate>();
+    private List<Impostor> allImpostors = new List<Impostor>();
+    private List<TaskStation> allStations = new List<TaskStation>();
+
+    private void Start()
     {
-        if (Instance == null) Instance = this;
-        else Destroy(gameObject);
+        InitializeSimulation();
     }
 
-    void Start()
+    /// <summary>
+    /// Inicializa la simulación creando todos los elementos.
+    /// </summary>
+    private void InitializeSimulation()
     {
-        
-    }
-
-    void Update()
-    {
-        
-        var agCopy = new List<AgentBase>(agents);
-        foreach (var a in agCopy)
+        // Crear contenedores si no existen
+        if (crewMatesParent == null)
         {
-            if (a == null) continue;
-            a.Simulate();
+            crewMatesParent = new GameObject("CrewMates").transform;
+        }
+        if (impostorsParent == null)
+        {
+            impostorsParent = new GameObject("Impostors").transform;
+        }
+        if (stationsParent == null)
+        {
+            stationsParent = new GameObject("TaskStations").transform;
         }
 
-        
-        CheckVictoryConditions();
+        // Crear estaciones de tarea
+        SpawnTaskStations();
+
+        // Crear tripulantes
+        SpawnCrewMates();
+
+        // Crear impostores
+        SpawnImpostors();
+
+        Debug.Log($"Simulación iniciada: {numberOfCrewMates} tripulantes, {numberOfImpostors} impostores, {numberOfTaskStations} estaciones");
     }
 
-    public void RegisterAgent(AgentBase a)
+    /// <summary>
+    /// Crea las estaciones de tarea en posiciones aleatorias válidas.
+    /// </summary>
+    private void SpawnTaskStations()
     {
-        if (!agents.Contains(a)) agents.Add(a);
-    }
-
-    public void UnregisterAgent(AgentBase a)
-    {
-        if (agents.Contains(a)) agents.Remove(a);
-    }
-
-    public void ReportTaskCompleted()
-    {
-        tasksCompleted++;
-        Debug.Log($"Tarea completada: {tasksCompleted}/{totalTasks}");
-    }
-
-    // Reporte por Traitor.Kill()
-    public void ReportKill(Vector2 pos, Crewmate victim)
-    {
-        Debug.Log($"Tripulante eliminado en {pos}");
-        // notificar testigos: buscar tripulantes que puedan ver el evento (distancia/vision)
-        float witnessRadius = 6f;
-        Collider2D[] nearby = Physics2D.OverlapCircleAll(pos, witnessRadius);
-        foreach (var col in nearby)
+        for (int i = 0; i < numberOfTaskStations; i++)
         {
-            Crewmate c = col.GetComponent<Crewmate>();
-            if (c != null)
+            Vector3 spawnPosition = GetValidSpawnPosition();
+
+            GameObject stationObj = Instantiate(taskStationPrefab, spawnPosition, Quaternion.identity, stationsParent);
+            stationObj.name = $"TaskStation_{i + 1}";
+
+            TaskStation station = stationObj.GetComponent<TaskStation>();
+            if (station != null)
             {
-                // c.OnWitnessKill(pos);
+                allStations.Add(station);
             }
         }
-
-        // remover del registro
-        // if (victim != null) UnregisterAgent(victim);
-
-        // evaluar si traidores ganan
     }
 
-    void CheckVictoryConditions()
+    /// <summary>
+    /// Crea los tripulantes en posiciones aleatorias válidas.
+    /// </summary>
+    private void SpawnCrewMates()
     {
-        // tripulantes ganan completando totalTasks
-        if (tasksCompleted >= totalTasks)
+        for (int i = 0; i < numberOfCrewMates; i++)
         {
-            Debug.Log("Tripulantes GANAN: tareas completadas");
-            Time.timeScale = 0f;
-        }
+            Vector3 spawnPosition = GetValidSpawnPosition();
 
-        // traidores ganan si quedan <= numTraitors de agentes tripulantes
-        int crewCount = 0;
-        foreach (var a in agents)
-        {
-            if (a is Crewmate) crewCount++;
-        }
-        if (crewCount <= numTraitors)
-        {
-            Debug.Log("Traidores GANAN");
-            Time.timeScale = 0f;
+            GameObject crewMateObj = Instantiate(crewMatePrefab, spawnPosition, Quaternion.identity, crewMatesParent);
+            crewMateObj.name = $"CrewMate_{i + 1}";
+
+            Crewmate crewMate = crewMateObj.GetComponent<Crewmate>();
+            if (crewMate != null)
+            {
+                allCrewMates.Add(crewMate);
+            }
         }
     }
+
+    /// <summary>
+    /// Crea los impostores en posiciones aleatorias válidas.
+    /// </summary>
+    private void SpawnImpostors()
+    {
+        for (int i = 0; i < numberOfImpostors; i++)
+        {
+            Vector3 spawnPosition = GetValidSpawnPosition();
+
+            GameObject impostorObj = Instantiate(impostorPrefab, spawnPosition, Quaternion.identity, impostorsParent);
+            impostorObj.name = $"Impostor_{i + 1}";
+
+            Impostor impostor = impostorObj.GetComponent<Impostor>();
+            if (impostor != null)
+            {
+                allImpostors.Add(impostor);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Encuentra una posición válida para hacer spawn (sin obstáculos).
+    /// </summary>
+    private Vector3 GetValidSpawnPosition()
+    {
+        Vector3 position;
+        int maxAttempts = 50;
+        int attempts = 0;
+
+        do
+        {
+            float x = Random.Range(spawnAreaMin.x, spawnAreaMax.x);
+            float y = Random.Range(spawnAreaMin.y, spawnAreaMax.y);
+            position = new Vector3(x, y, 0);
+            attempts++;
+
+            // Si no se encuentra posición válida después de muchos intentos, devolver la última
+            if (attempts >= maxAttempts)
+            {
+                Debug.LogWarning("No se pudo encontrar una posición de spawn válida después de muchos intentos");
+                break;
+            }
+
+        } while (Physics2D.OverlapCircle(position, 0.5f, obstacleLayer) != null);
+
+        return position;
+    }
+
+    /// <summary>
+    /// Obtiene estadísticas de la simulación.
+    /// </summary>
+    public SimulationStats GetStats()
+    {
+        int aliveCrewMates = 0;
+        int deadCrewMates = 0;
+        int busyStations = 0;
+
+        foreach (Crewmate cm in allCrewMates)
+        {
+            if (cm.IsDead)
+                deadCrewMates++;
+            else
+                aliveCrewMates++;
+        }
+
+        foreach (TaskStation station in allStations)
+        {
+            if (station.IsOccupied)
+                busyStations++;
+        }
+
+        return new SimulationStats
+        {
+            totalCrewMates = numberOfCrewMates,
+            aliveCrewMates = aliveCrewMates,
+            deadCrewMates = deadCrewMates,
+            totalImpostors = numberOfImpostors,
+            totalStations = numberOfTaskStations,
+            busyStations = busyStations
+        };
+    }
+
+    /// <summary>
+    /// Reinicia la simulación destruyendo todos los objetos y recreándolos.
+    /// </summary>
+    public void ResetSimulation()
+    {
+        // Destruir todos los objetos existentes
+        foreach (Transform child in crewMatesParent)
+        {
+            Destroy(child.gameObject);
+        }
+        foreach (Transform child in impostorsParent)
+        {
+            Destroy(child.gameObject);
+        }
+        foreach (Transform child in stationsParent)
+        {
+            Destroy(child.gameObject);
+        }
+
+        // Limpiar listas
+        allCrewMates.Clear();
+        allImpostors.Clear();
+        allStations.Clear();
+
+        // Reiniciar
+        InitializeSimulation();
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        // Dibujar área de spawn
+        Gizmos.color = Color.cyan;
+        Vector3 center = new Vector3(
+            (spawnAreaMin.x + spawnAreaMax.x) / 2,
+            (spawnAreaMin.y + spawnAreaMax.y) / 2,
+            0
+        );
+        Vector3 size = new Vector3(
+            spawnAreaMax.x - spawnAreaMin.x,
+            spawnAreaMax.y - spawnAreaMin.y,
+            0
+        );
+        Gizmos.DrawWireCube(center, size);
+    }
+}
+
+/// <summary>
+/// Estructura para almacenar estadísticas de la simulación.
+/// </summary>
+[System.Serializable]
+public struct SimulationStats
+{
+    public int totalCrewMates;
+    public int aliveCrewMates;
+    public int deadCrewMates;
+    public int totalImpostors;
+    public int totalStations;
+    public int busyStations;
 }

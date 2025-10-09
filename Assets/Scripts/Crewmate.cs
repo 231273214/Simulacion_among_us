@@ -1,132 +1,232 @@
+using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
 
+/// <summary>
+/// Controla el comportamiento de un tripulante.
+/// Busca estaciones, se mueve hacia ellas, realiza tareas y repite el ciclo.
+/// </summary>
 public class Crewmate : MonoBehaviour
 {
-    [Header("Movimiento y bÃºsqueda")]
-    public float moveSpeed = 3f;
-    public float baseSearchRadius = 4f;
-    public float maxSearchRadius = 10f;
-    public float searchIncreaseRate = 1f; // cuanto crece el radio por segundo
-    public float avoidDistance = 0.5f;
-    public LayerMask wallLayer;
-    public LayerMask stationLayer;
+    [Header("Configuración de Movimiento")]
+    [SerializeField] protected float moveSpeed = 3f;
+    [SerializeField] protected float waypointReachDistance = 0.1f;
 
-    [Header("Tareas")]
-    public int totalTasks = 4;
-    public float taskDuration = 2f;
+    [Header("Configuración de Tareas")]
+    [SerializeField] protected float waitTimeWhenAllBusy = 2f; // Tiempo de espera si todas las estaciones están ocupadas
 
-    private Rigidbody2D rb;
-    private Vector2 moveDir;
-    private TaskStation currentStation;
-    private int completedTasks = 0;
-    private float currentSearchRadius;
-    private bool doingTask = false;
-    private HashSet<TaskStation> completedStations = new HashSet<TaskStation>();
+    protected Pathfinding pathfinding;
+    protected List<Vector3> currentPath;
+    protected int currentWaypointIndex = 0;
+    protected TaskStation targetStation = null;
+    protected bool isDoingTask = false;
+    protected bool isDead = false;
 
-    void Start()
+    // Estados del tripulante
+    public enum CrewmateState
     {
-        rb = GetComponent<Rigidbody2D>();
-        PickRandomDirection();
-        currentSearchRadius = baseSearchRadius;
+        Idle,           // Sin hacer nada
+        MovingToTask,   // Moviéndose hacia una estación
+        DoingTask,      // Realizando una tarea
+        Waiting         // Esperando que se libere una estación
     }
 
-    void FixedUpdate()
+    protected CrewmateState currentState = CrewmateState.Idle;
+
+    protected virtual void Start()
     {
-        if (doingTask || completedTasks >= totalTasks)
-            return;
+        pathfinding = FindObjectOfType<Pathfinding>();
 
-        SearchForStations();
-        MoveAndAvoidWalls();
-    }
-
-    void SearchForStations()
-    {
-        // Buscar estaciones dentro del radio
-        Collider2D[] stations = Physics2D.OverlapCircleAll(transform.position, currentSearchRadius, stationLayer);
-        TaskStation nearest = null;
-        float minDist = Mathf.Infinity;
-
-        foreach (var col in stations)
+        if (pathfinding == null)
         {
-            TaskStation station = col.GetComponent<TaskStation>();
-            if (station != null && !station.isOccupied && !completedStations.Contains(station))
+            Debug.LogError("No se encontró Pathfinding en la escena!");
+            return;
+        }
+
+        // Comienza buscando una tarea
+        StartCoroutine(BehaviorLoop());
+    }
+
+    /// <summary>
+    /// Bucle principal del comportamiento del tripulante.
+    /// </summary>
+    protected virtual IEnumerator BehaviorLoop()
+    {
+        while (!isDead)
+        {
+            switch (currentState)
             {
-                float dist = Vector2.Distance(transform.position, col.transform.position);
-                if (dist < minDist)
+                case CrewmateState.Idle:
+                    yield return StartCoroutine(SearchForTask());
+                    break;
+
+                case CrewmateState.MovingToTask:
+                    yield return StartCoroutine(MoveAlongPath());
+                    break;
+
+                case CrewmateState.DoingTask:
+                    yield return StartCoroutine(PerformTask());
+                    break;
+
+                case CrewmateState.Waiting:
+                    yield return new WaitForSeconds(waitTimeWhenAllBusy);
+                    currentState = CrewmateState.Idle;
+                    break;
+            }
+
+            yield return null;
+        }
+    }
+
+    /// <summary>
+    /// Busca una estación de tarea disponible.
+    /// </summary>
+    protected virtual IEnumerator SearchForTask()
+    {
+        TaskStation[] allStations = FindObjectsOfType<TaskStation>();
+        TaskStation closestFreeStation = null;
+        float closestDistance = Mathf.Infinity;
+
+        // Encuentra la estación libre más cercana
+        foreach (TaskStation station in allStations)
+        {
+            if (!station.IsOccupied)
+            {
+                float distance = Vector3.Distance(transform.position, station.transform.position);
+                if (distance < closestDistance)
                 {
-                    minDist = dist;
-                    nearest = station;
+                    closestDistance = distance;
+                    closestFreeStation = station;
                 }
             }
         }
 
-        if (nearest != null)
+        // Si se encontró una estación libre, calcular el camino
+        if (closestFreeStation != null)
         {
-            // Reinicia radio de bÃºsqueda
-            currentSearchRadius = baseSearchRadius;
-            // DirÃ­gete hacia la estaciÃ³n
-            moveDir = ((Vector2)nearest.transform.position - rb.position).normalized;
+            targetStation = closestFreeStation;
+            currentPath = pathfinding.FindPath(transform.position, targetStation.transform.position);
 
-            // Si estÃ¡ suficientemente cerca, inicia tarea
-            if (Vector2.Distance(transform.position, nearest.transform.position) < 0.5f)
+            if (currentPath != null && currentPath.Count > 0)
             {
-                StartCoroutine(DoTask(nearest));
+                currentWaypointIndex = 0;
+                currentState = CrewmateState.MovingToTask;
+            }
+            else
+            {
+                // No se pudo calcular un camino, esperar
+                currentState = CrewmateState.Waiting;
             }
         }
         else
         {
-            // No encontrÃ³ estaciones: aumenta radio y sigue explorando
-            currentSearchRadius = Mathf.Min(currentSearchRadius + searchIncreaseRate * Time.fixedDeltaTime, maxSearchRadius);
+            // Todas las estaciones están ocupadas, esperar
+            currentState = CrewmateState.Waiting;
         }
+
+        yield return null;
     }
 
-    IEnumerator DoTask(TaskStation station)
+    /// <summary>
+    /// Se mueve siguiendo el camino calculado por A*.
+    /// </summary>
+    protected virtual IEnumerator MoveAlongPath()
     {
-        doingTask = true;
-        currentStation = station;
-        station.isOccupied = true;
-
-        yield return new WaitForSeconds(taskDuration);
-
-        station.isOccupied = false;
-        completedTasks++;
-        completedStations.Add(station);
-        currentStation = null;
-        doingTask = false;
-
-        // Elige nueva direcciÃ³n aleatoria para continuar explorando
-        PickRandomDirection();
-    }
-
-    void MoveAndAvoidWalls()
-    {
-        // DetecciÃ³n de pared
-        RaycastHit2D hit = Physics2D.Raycast(transform.position, moveDir, avoidDistance, wallLayer);
-        if (hit.collider != null)
+        while (currentWaypointIndex < currentPath.Count)
         {
-            // Gira para evitar
-            float turnAngle = Random.value > 0.5f ? 90f : -90f;
-            moveDir = Quaternion.Euler(0, 0, turnAngle) * moveDir;
+            Vector3 targetWaypoint = currentPath[currentWaypointIndex];
+
+            // Mover hacia el waypoint
+            while (Vector3.Distance(transform.position, targetWaypoint) > waypointReachDistance)
+            {
+                Vector3 direction = (targetWaypoint - transform.position).normalized;
+                transform.position += direction * moveSpeed * Time.deltaTime;
+                yield return null;
+            }
+
+            currentWaypointIndex++;
         }
 
-        rb.MovePosition(rb.position + moveDir * moveSpeed * Time.fixedDeltaTime);
+        // Llegó a la estación, intentar ocuparla
+        if (targetStation != null && targetStation.TryOccupy(this))
+        {
+            currentState = CrewmateState.DoingTask;
+        }
+        else
+        {
+            // La estación fue ocupada por otro tripulante, buscar otra
+            targetStation = null;
+            currentState = CrewmateState.Idle;
+        }
+
+        yield return null;
     }
 
-    void PickRandomDirection()
+    /// <summary>
+    /// Realiza la tarea en la estación.
+    /// </summary>
+    protected virtual IEnumerator PerformTask()
     {
-        float angle = Random.Range(0f, 360f);
-        moveDir = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+        if (targetStation == null)
+        {
+            currentState = CrewmateState.Idle;
+            yield break;
+        }
+
+        isDoingTask = true;
+
+        // Esperar a que se complete la tarea
+        while (!targetStation.UpdateTask(Time.deltaTime))
+        {
+            yield return null;
+        }
+
+        isDoingTask = false;
+        targetStation = null;
+
+        // Buscar otra tarea
+        currentState = CrewmateState.Idle;
     }
 
-    void OnDrawGizmosSelected()
+    /// <summary>
+    /// Marca al tripulante como muerto (para impostores).
+    /// </summary>
+    public virtual void Die()
     {
-        Gizmos.color = Color.cyan;
-        Gizmos.DrawWireSphere(transform.position, currentSearchRadius);
+        isDead = true;
+
+        // Liberar la estación si estaba usándola
+        if (targetStation != null && isDoingTask)
+        {
+            targetStation.ForceRelease();
+        }
+
+        // Cambiar apariencia
+        SpriteRenderer sr = GetComponent<SpriteRenderer>();
+        if (sr != null)
+        {
+            sr.color = new Color(0.5f, 0.5f, 0.5f, 0.5f); // Gris translúcido
+        }
+
+        StopAllCoroutines();
     }
+
+    /// <summary>
+    /// Dibuja el camino actual en el editor.
+    /// </summary>
+    protected virtual void OnDrawGizmos()
+    {
+        if (currentPath != null && currentPath.Count > 0)
+        {
+            Gizmos.color = Color.blue;
+            for (int i = 0; i < currentPath.Count - 1; i++)
+            {
+                Gizmos.DrawLine(currentPath[i], currentPath[i + 1]);
+            }
+        }
+    }
+
+    public bool IsDead => isDead;
+    public CrewmateState CurrentState => currentState;
 }
-
-
-
 
