@@ -1,10 +1,10 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-/// <summary>
-/// Gestor principal de la simulación.
-/// Controla la creación de tripulantes, impostores y estaciones.
-/// </summary>
+
+/// Gestor principal de la simulación
+/// Controla la creación de tripulantes, impostores y estaciones
+/// Verifica condiciones de victoria
 public class SimulationManager : MonoBehaviour
 {
     [Header("Prefabs")]
@@ -29,16 +29,34 @@ public class SimulationManager : MonoBehaviour
     private List<Impostor> allImpostors = new List<Impostor>();
     private List<TaskStation> allStations = new List<TaskStation>();
 
+    private bool gameEnded = false;
+    private string winnerMessage = "";
+
+    // Eventos públicos para el estado del juego
+    public bool GameEnded => gameEnded;
+    public string WinnerMessage => winnerMessage;
+
     private void Start()
     {
         InitializeSimulation();
     }
 
-    /// <summary>
-    /// Inicializa la simulación creando todos los elementos.
-    /// </summary>
+    private void Update()
+    {
+        // Verificar condiciones de victoria solo si el juego no ha terminado
+        if (!gameEnded)
+        {
+            CheckWinConditions();
+        }
+    }
+
+    /// Inicializa la simulación creando todos los elementos
     private void InitializeSimulation()
     {
+        // Reiniciar estado del juego
+        gameEnded = false;
+        winnerMessage = "";
+
         // Crear contenedores si no existen
         if (crewMatesParent == null)
         {
@@ -65,9 +83,72 @@ public class SimulationManager : MonoBehaviour
         Debug.Log($"Simulación iniciada: {numberOfCrewMates} tripulantes, {numberOfImpostors} impostores, {numberOfTaskStations} estaciones");
     }
 
-    /// <summary>
-    /// Crea las estaciones de tarea en posiciones aleatorias válidas.
-    /// </summary>
+    /// Verifica las condiciones de victoria
+    private void CheckWinConditions()
+    {
+        // Contar tripulantes vivos
+        int aliveCrewMates = 0;
+        foreach (Crewmate cm in allCrewMates)
+        {
+            if (!cm.IsDead)
+            {
+                aliveCrewMates++;
+            }
+        }
+
+        // Condición 1: Si todos los tripulantes están muertos, ganan los impostores
+        if (aliveCrewMates == 0)
+        {
+            EndGame("¡LOS IMPOSTORES GANAN! Todos los tripulantes han sido eliminados.");
+            return;
+        }
+
+        // Condición 2: Si todas las tareas están completadas, ganan los tripulantes
+        int completedTasks = 0;
+        foreach (TaskStation station in allStations)
+        {
+            if (station.IsCompleted)
+            {
+                completedTasks++;
+            }
+        }
+
+        if (completedTasks == allStations.Count)
+        {
+            EndGame("¡LOS TRIPULANTES GANAN! Todas las tareas han sido completadas.");
+            return;
+        }
+    }
+
+    /// Termina el juego con un mensaje de victoria
+    private void EndGame(string message)
+    {
+        gameEnded = true;
+        winnerMessage = message;
+
+        Debug.Log("==========================================");
+        Debug.Log(message);
+        Debug.Log("==========================================");
+
+        // Detener todos los tripulantes e impostores
+        foreach (Crewmate cm in allCrewMates)
+        {
+            if (cm != null)
+            {
+                cm.enabled = false;
+            }
+        }
+
+        foreach (Impostor imp in allImpostors)
+        {
+            if (imp != null)
+            {
+                imp.enabled = false;
+            }
+        }
+    }
+
+    /// Crea las estaciones de tarea en posiciones aleatorias válidas
     private void SpawnTaskStations()
     {
         for (int i = 0; i < numberOfTaskStations; i++)
@@ -85,9 +166,7 @@ public class SimulationManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Crea los tripulantes en posiciones aleatorias válidas.
-    /// </summary>
+    /// Crea los tripulantes en posiciones aleatorias válidas
     private void SpawnCrewMates()
     {
         for (int i = 0; i < numberOfCrewMates; i++)
@@ -105,9 +184,7 @@ public class SimulationManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Crea los impostores en posiciones aleatorias válidas.
-    /// </summary>
+    /// Crea los impostores en posiciones aleatorias válidas
     private void SpawnImpostors()
     {
         for (int i = 0; i < numberOfImpostors; i++)
@@ -125,9 +202,7 @@ public class SimulationManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Encuentra una posición válida para hacer spawn (sin obstáculos).
-    /// </summary>
+    /// Encuentra una posición válida para hacer spawn (sin obstáculos)
     private Vector3 GetValidSpawnPosition()
     {
         Vector3 position;
@@ -153,14 +228,13 @@ public class SimulationManager : MonoBehaviour
         return position;
     }
 
-    /// <summary>
-    /// Obtiene estadísticas de la simulación.
-    /// </summary>
+    /// Obtiene estadísticas de la simulación
     public SimulationStats GetStats()
     {
         int aliveCrewMates = 0;
         int deadCrewMates = 0;
         int busyStations = 0;
+        int completedTasks = 0;
 
         foreach (Crewmate cm in allCrewMates)
         {
@@ -174,6 +248,8 @@ public class SimulationManager : MonoBehaviour
         {
             if (station.IsOccupied)
                 busyStations++;
+            if (station.IsCompleted)
+                completedTasks++;
         }
 
         return new SimulationStats
@@ -183,13 +259,12 @@ public class SimulationManager : MonoBehaviour
             deadCrewMates = deadCrewMates,
             totalImpostors = numberOfImpostors,
             totalStations = numberOfTaskStations,
-            busyStations = busyStations
+            busyStations = busyStations,
+            completedTasks = completedTasks
         };
     }
 
-    /// <summary>
-    /// Reinicia la simulación destruyendo todos los objetos y recreándolos.
-    /// </summary>
+    /// Reinicia la simulación destruyendo todos los objetos y recreándolos
     public void ResetSimulation()
     {
         // Destruir todos los objetos existentes
@@ -233,9 +308,7 @@ public class SimulationManager : MonoBehaviour
     }
 }
 
-/// <summary>
-/// Estructura para almacenar estadísticas de la simulación.
-/// </summary>
+/// Estructura para almacenar estadísticas de la simulación
 [System.Serializable]
 public struct SimulationStats
 {
@@ -245,4 +318,5 @@ public struct SimulationStats
     public int totalImpostors;
     public int totalStations;
     public int busyStations;
+    public int completedTasks;
 }

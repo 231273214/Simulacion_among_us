@@ -1,22 +1,24 @@
 using UnityEngine;
 
-/// <summary>
 /// Representa una estación de tareas que puede ser utilizada por tripulantes.
-/// Controla si está ocupada, el progreso de la tarea y su visualización.
-/// </summary>
+/// Controla si está ocupada, el progreso de la tarea y su visualización
 public class TaskStation : MonoBehaviour
 {
     [Header("Configuración de la Tarea")]
-    [SerializeField] private float taskDuration = 3f; // Tiempo que toma completar la tarea (segundos)
+    [SerializeField] private float taskDuration = 3f;
     [SerializeField] private Color freeColor = Color.green;
     [SerializeField] private Color occupiedColor = Color.yellow;
+    [SerializeField] private Color completedColor = Color.cyan;
 
     private bool isOccupied = false;
+    private bool isCompleted = false;
     private float taskProgress = 0f;
     private Crewmate currentUser = null;
     private SpriteRenderer spriteRenderer;
 
+    // Propiedades públicas
     public bool IsOccupied => isOccupied;
+    public bool IsCompleted => isCompleted;
     public float TaskDuration => taskDuration;
 
     private void Awake()
@@ -28,12 +30,9 @@ public class TaskStation : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Intenta ocupar la estación. Retorna true si se ocupó exitosamente.
-    /// </summary>
     public bool TryOccupy(Crewmate user)
     {
-        if (isOccupied)
+        if (isOccupied || isCompleted)
         {
             return false;
         }
@@ -50,19 +49,15 @@ public class TaskStation : MonoBehaviour
         return true;
     }
 
-    /// <summary>
-    /// Actualiza el progreso de la tarea. Retorna true cuando se completa.
-    /// </summary>
     public bool UpdateTask(float deltaTime)
     {
-        if (!isOccupied)
+        if (!isOccupied || isCompleted)
         {
             return false;
         }
 
         taskProgress += deltaTime;
 
-        // La tarea se completa cuando el progreso alcanza la duración
         if (taskProgress >= taskDuration)
         {
             CompleteTask();
@@ -72,12 +67,40 @@ public class TaskStation : MonoBehaviour
         return false;
     }
 
-    /// <summary>
-    /// Completa la tarea y libera la estación.
-    /// </summary>
     private void CompleteTask()
     {
         isOccupied = false;
+        isCompleted = true;
+        currentUser = null;
+        taskProgress = taskDuration;
+
+        if (spriteRenderer != null)
+        {
+            spriteRenderer.color = completedColor;
+        }
+
+        Debug.Log($"Tarea completada en {gameObject.name}");
+    }
+
+    public void ForceRelease()
+    {
+        if (isOccupied && !isCompleted)
+        {
+            isOccupied = false;
+            currentUser = null;
+            taskProgress = 0f;
+
+            if (spriteRenderer != null)
+            {
+                spriteRenderer.color = freeColor;
+            }
+        }
+    }
+
+    public void ResetStation()
+    {
+        isOccupied = false;
+        isCompleted = false;
         currentUser = null;
         taskProgress = 0f;
 
@@ -87,33 +110,27 @@ public class TaskStation : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Fuerza la liberación de la estación (útil si el tripulante se va antes de terminar).
-    /// </summary>
-    public void ForceRelease()
-    {
-        if (isOccupied)
-        {
-            CompleteTask();
-        }
-    }
-
-    /// <summary>
-    /// Dibuja el área de interacción de la estación.
-    /// </summary>
     private void OnDrawGizmos()
     {
-        Gizmos.color = isOccupied ? Color.red : Color.green;
+        if (isCompleted)
+        {
+            Gizmos.color = Color.cyan;
+        }
+        else if (isOccupied)
+        {
+            Gizmos.color = Color.yellow;
+        }
+        else
+        {
+            Gizmos.color = Color.green;
+        }
+
         Gizmos.DrawWireSphere(transform.position, 1f);
     }
 
-    /// <summary>
-    /// Obtiene el progreso actual de la tarea (0 a 1).
-    /// </summary>
     public float GetTaskProgress()
     {
         return taskProgress / taskDuration;
     }
 }
-
 

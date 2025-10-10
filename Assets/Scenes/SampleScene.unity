@@ -6855,7 +6855,7 @@ MonoBehaviour:
   impostorPrefab: {fileID: 7121267332322253993, guid: f538c431b45ad744690895b1bf19a15a, type: 3}
   taskStationPrefab: {fileID: 7898893560426223687, guid: 3272cbe018b62aa46a090c78c5dcfbe8, type: 3}
   numberOfCrewMates: 4
-  numberOfImpostors: 2
+  numberOfImpostors: 1
   numberOfTaskStations: 3
   spawnAreaMin: {x: -34, y: -24}
   spawnAreaMax: {x: 27.9, y: 31.9}

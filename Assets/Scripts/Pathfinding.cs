@@ -1,9 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-/// <summary>
-/// Implementa el algoritmo A* para encontrar el camino más corto entre dos puntos.
-/// </summary>
+/// Implementa el algoritmo A* para encontrar el camino más corto entre dos puntos
 public class Pathfinding : MonoBehaviour
 {
     private GridManager gridManager;
@@ -13,10 +11,8 @@ public class Pathfinding : MonoBehaviour
         gridManager = GetComponent<GridManager>();
     }
 
-    /// <summary>
     /// Encuentra un camino desde startPos hasta targetPos usando A*.
     /// Retorna una lista de posiciones en el mundo que forman el camino.
-    /// </summary>
     public List<Vector3> FindPath(Vector3 startPos, Vector3 targetPos)
     {
         Node startNode = gridManager.NodeFromWorldPoint(startPos);
@@ -24,7 +20,7 @@ public class Pathfinding : MonoBehaviour
 
         List<Vector3> waypoints = new List<Vector3>();
 
-        // Si el objetivo no es caminable, no hay camino
+        // Si el objetivo no es accecible, no hay camino
         if (!targetNode.walkable)
         {
             return waypoints;
@@ -84,9 +80,7 @@ public class Pathfinding : MonoBehaviour
         return waypoints;
     }
 
-    /// <summary>
-    /// Reconstruye el camino desde el nodo final hasta el inicial.
-    /// </summary>
+    /// Reconstruye el camino desde el nodo final hasta el inicial
     private List<Vector3> RetracePath(Node startNode, Node endNode)
     {
         List<Node> path = new List<Node>();
@@ -98,16 +92,14 @@ public class Pathfinding : MonoBehaviour
             currentNode = currentNode.parent;
         }
 
-        // Simplificar el camino (opcional, para hacerlo más suave)
+        // Simplificar el camino
         List<Vector3> waypoints = SimplifyPath(path);
         waypoints.Reverse();
 
         return waypoints;
     }
 
-    /// <summary>
-    /// Simplifica el camino eliminando puntos intermedios innecesarios.
-    /// </summary>
+    /// Simplifica el camino eliminando puntos intermedios innecesarios
     private List<Vector3> SimplifyPath(List<Node> path)
     {
         List<Vector3> waypoints = new List<Vector3>();
@@ -131,9 +123,7 @@ public class Pathfinding : MonoBehaviour
         return waypoints;
     }
 
-    /// <summary>
-    /// Calcula la distancia entre dos nodos (para el costo en A*).
-    /// </summary>
+    /// Calcula la distancia entre dos nodos
     private int GetDistance(Node nodeA, Node nodeB)
     {
         int dstX = Mathf.Abs(nodeA.gridX - nodeB.gridX);

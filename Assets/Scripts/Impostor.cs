@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using static Crewmate;
 using static UnityEngine.RuleTile.TilingRuleOutput;
 
 /// <summary>
@@ -10,13 +11,15 @@ using static UnityEngine.RuleTile.TilingRuleOutput;
 public class Impostor : Crewmate
 {
     [Header("Configuración de Impostor")]
+    [SerializeField] private float initialKillCooldown = 15f; // Cooldown inicial antes del primer asesinato
     [SerializeField] private float killCooldown = 10f; // Tiempo entre asesinatos
     [SerializeField] private float killRange = 1.5f; // Distancia para poder matar
     [SerializeField] private float fakeTaskChance = 0.7f; // Probabilidad de fingir en lugar de hacer tarea real (0-1)
     [SerializeField] private float killAttemptInterval = 2f; // Cada cuánto tiempo intenta matar
 
     private float killTimer = 0f;
-    private bool canKill = true;
+    private bool canKill = false; // Comienza como false
+    private bool hasKilledOnce = false; // Para rastrear si ya mató al menos una vez
 
     protected override void Start()
     {
@@ -39,6 +42,16 @@ public class Impostor : Crewmate
     /// </summary>
     private IEnumerator KillBehavior()
     {
+        // Esperar el cooldown inicial antes de poder matar por primera vez
+        killTimer = 0f;
+        while (killTimer < initialKillCooldown)
+        {
+            killTimer += Time.deltaTime;
+            yield return null;
+        }
+        canKill = true;
+        killTimer = 0f;
+
         while (!isDead)
         {
             // Actualizar el cooldown de asesinato
@@ -59,8 +72,9 @@ public class Impostor : Crewmate
 
                 if (victim != null && Vector3.Distance(transform.position, victim.transform.position) <= killRange)
                 {
-                    KillCrewmate(victim);
+                    KillCrewMate(victim);
                     canKill = false;
+                    hasKilledOnce = true;
                     killTimer = 0f;
 
                     // Alejarse del cuerpo después de matar
@@ -77,11 +91,11 @@ public class Impostor : Crewmate
     /// </summary>
     private Crewmate FindNearestCrewMate()
     {
-        Crewmate[] allCrewmates = FindObjectsOfType<Crewmate>();
+        Crewmate[] allCrewMates = FindObjectsOfType<Crewmate>();
         Crewmate nearest = null;
         float nearestDistance = Mathf.Infinity;
 
-        foreach (Crewmate crewmate in allCrewmates)
+        foreach (Crewmate crewmate in allCrewMates)
         {
             // Ignorar a sí mismo, otros impostores y tripulantes muertos
             if (crewmate == this || crewmate is Impostor || crewmate.IsDead)
@@ -103,7 +117,7 @@ public class Impostor : Crewmate
     /// <summary>
     /// Mata a un tripulante.
     /// </summary>
-    private void KillCrewmate(Crewmate victim)
+    private void KillCrewMate(Crewmate victim)
     {
         if (victim != null && !victim.IsDead)
         {
@@ -191,5 +205,13 @@ public class Impostor : Crewmate
         // Dibujar rango de asesinato
         Gizmos.color = canKill ? Color.red : Color.gray;
         Gizmos.DrawWireSphere(transform.position, killRange);
+
+        // Mostrar texto del cooldown
+        if (!canKill && Application.isPlaying)
+        {
+            float remainingTime = hasKilledOnce ? (killCooldown - killTimer) : (initialKillCooldown - killTimer);
+            UnityEditor.Handles.Label(transform.position + Vector3.up * 2,
+                $"Cooldown: {remainingTime:F1}s");
+        }
     }
 }

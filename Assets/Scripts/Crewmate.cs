@@ -2,10 +2,9 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 
-/// <summary>
-/// Controla el comportamiento de un tripulante.
-/// Busca estaciones, se mueve hacia ellas, realiza tareas y repite el ciclo.
-/// </summary>
+
+/// Controla el comportamiento de un tripulante
+/// Busca estaciones, se mueve hacia ellas, realiza tareas y repite el ciclo
 public class Crewmate : MonoBehaviour
 {
     [Header("Configuración de Movimiento")]
@@ -47,9 +46,7 @@ public class Crewmate : MonoBehaviour
         StartCoroutine(BehaviorLoop());
     }
 
-    /// <summary>
     /// Bucle principal del comportamiento del tripulante.
-    /// </summary>
     protected virtual IEnumerator BehaviorLoop()
     {
         while (!isDead)
@@ -78,9 +75,7 @@ public class Crewmate : MonoBehaviour
         }
     }
 
-    /// <summary>
     /// Busca una estación de tarea disponible.
-    /// </summary>
     protected virtual IEnumerator SearchForTask()
     {
         TaskStation[] allStations = FindObjectsOfType<TaskStation>();
@@ -127,9 +122,7 @@ public class Crewmate : MonoBehaviour
         yield return null;
     }
 
-    /// <summary>
-    /// Se mueve siguiendo el camino calculado por A*.
-    /// </summary>
+    /// Se mueve siguiendo el camino calculado por A*
     protected virtual IEnumerator MoveAlongPath()
     {
         while (currentWaypointIndex < currentPath.Count)
@@ -162,9 +155,7 @@ public class Crewmate : MonoBehaviour
         yield return null;
     }
 
-    /// <summary>
     /// Realiza la tarea en la estación.
-    /// </summary>
     protected virtual IEnumerator PerformTask()
     {
         if (targetStation == null)
@@ -188,9 +179,7 @@ public class Crewmate : MonoBehaviour
         currentState = CrewmateState.Idle;
     }
 
-    /// <summary>
-    /// Marca al tripulante como muerto (para impostores).
-    /// </summary>
+    /// Marca al tripulante como muerto 
     public virtual void Die()
     {
         isDead = true;
@@ -211,9 +200,7 @@ public class Crewmate : MonoBehaviour
         StopAllCoroutines();
     }
 
-    /// <summary>
-    /// Dibuja el camino actual en el editor.
-    /// </summary>
+    /// Dibuja el camino actual en el editor
     protected virtual void OnDrawGizmos()
     {
         if (currentPath != null && currentPath.Count > 0)

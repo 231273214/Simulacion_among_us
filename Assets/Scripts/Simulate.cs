@@ -14,9 +14,8 @@ public class Simulate : MonoBehaviour
         allStations = FindObjectsOfType<TaskStation>().ToList();
     }
 
-    /// <summary>
-    /// Encuentra la estación libre más cercana dentro del radio de búsqueda.
-    /// </summary>
+
+    /// Encuentra la estación libre más cercana dentro del radio de búsqueda
     public TaskStation FindNearestAvailableTaskStation(Vector3 fromPosition, float searchRadius)
     {
         TaskStation nearest = null;
@@ -37,9 +36,7 @@ public class Simulate : MonoBehaviour
         return nearest;
     }
 
-    /// <summary>
-    /// Devuelve una estación aleatoria libre (por si quieres probar otro modo de asignación).
-    /// </summary>
+    /// Devuelve una estación aleatoria libre 
     public TaskStation GetRandomAvailableStation()
     {
         var available = allStations.Where(s => !s.IsOccupied).ToList();

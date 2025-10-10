@@ -74,7 +74,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6941706106843099873, guid: edb9f2e3120fb164e8647929dcf51a43, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.7071068
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6941706106843099873, guid: edb9f2e3120fb164e8647929dcf51a43, type: 3}
       propertyPath: m_LocalRotation.x
@@ -86,7 +86,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6941706106843099873, guid: edb9f2e3120fb164e8647929dcf51a43, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0.7071068
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6941706106843099873, guid: edb9f2e3120fb164e8647929dcf51a43, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -98,7 +98,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6941706106843099873, guid: edb9f2e3120fb164e8647929dcf51a43, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
-      value: 90
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7043040516381501053, guid: edb9f2e3120fb164e8647929dcf51a43, type: 3}
       propertyPath: m_Name
@@ -223,12 +223,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Traitor
   moveSpeed: 3
-  visionRadius: 4
-  safeDistance: 2
-  rb: {fileID: 0}
-  state: 0
-  crewmateMask:
-    serializedVersion: 2
-    m_Bits: 0
-  killRange: 1.5
-  killCooldown: 10
+  waypointReachDistance: 0.1
+  waitTimeWhenAllBusy: 2
+  initialKillCooldown: 1
+  killCooldown: 1
+  killRange: 1
+  fakeTaskChance: 0.7
+  killAttemptInterval: 2

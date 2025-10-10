@@ -1,10 +1,8 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-/// <summary>
 /// Gestiona la grilla lógica del mapa, detectando zonas caminables y obstáculos.
-/// Se usa como base para el pathfinding.
-/// </summary>
+/// Se usa como base para el pathfinding
 public class GridManager : MonoBehaviour
 {
     [Header("Configuración de la Grilla")]
@@ -27,9 +25,7 @@ public class GridManager : MonoBehaviour
         CreateGrid();
     }
 
-    /// <summary>
     /// Crea la grilla verificando qué posiciones son caminables.
-    /// </summary>
     private void CreateGrid()
     {
         grid = new Node[gridSizeX, gridSizeY];
@@ -49,9 +45,7 @@ public class GridManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Obtiene el nodo más cercano a una posición del mundo.
-    /// </summary>
+    /// Obtiene el nodo más cercano a una posición del mundo
     public Node NodeFromWorldPoint(Vector3 worldPosition)
     {
         float percentX = (worldPosition.x + gridWorldSize.x / 2) / gridWorldSize.x;
@@ -64,9 +58,7 @@ public class GridManager : MonoBehaviour
         return grid[x, y];
     }
 
-    /// <summary>
-    /// Obtiene los nodos vecinos de un nodo dado (8 direcciones).
-    /// </summary>
+    /// Obtiene los nodos vecinos de un nodo dado (8 direcciones)
     public List<Node> GetNeighbors(Node node)
     {
         List<Node> neighbors = new List<Node>();
@@ -90,9 +82,7 @@ public class GridManager : MonoBehaviour
         return neighbors;
     }
 
-    /// <summary>
-    /// Dibuja la grilla en el editor para debugging.
-    /// </summary>
+    /// Dibuja la grilla en el editor para debugging
     private void OnDrawGizmos()
     {
         Gizmos.DrawWireCube(transform.position, new Vector3(gridWorldSize.x, gridWorldSize.y, 1));
@@ -108,10 +98,8 @@ public class GridManager : MonoBehaviour
     }
 }
 
-/// <summary>
 /// Representa un nodo individual en la grilla.
-/// Contiene información sobre si es caminable y sus costos para el algoritmo A*.
-/// </summary>
+/// Contiene información sobre si es caminable y sus costos para el algoritmo A*
 public class Node
 {
     public bool walkable;
