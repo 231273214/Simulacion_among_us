@@ -4,10 +4,8 @@ using UnityEngine;
 using static Crewmate;
 using static UnityEngine.RuleTile.TilingRuleOutput;
 
-/// <summary>
-/// Controla el comportamiento de un impostor.
-/// Hereda de CrewMate pero puede fingir tareas y eliminar tripulantes.
-/// </summary>
+/// Controla el comportamiento de un impostor
+/// Hereda de CrewMate pero puede fingir tareas y eliminar tripulantes
 public class Impostor : Crewmate
 {
     [Header("Configuración de Impostor")]
@@ -36,10 +34,8 @@ public class Impostor : Crewmate
         StartCoroutine(KillBehavior());
     }
 
-    /// <summary>
-    /// Comportamiento de asesinato del impostor.
-    /// Busca tripulantes cercanos y los elimina si puede.
-    /// </summary>
+    /// Comportamiento de asesinato del impostor
+    /// Busca tripulantes cercanos y los elimina si puede
     private IEnumerator KillBehavior()
     {
         // Esperar el cooldown inicial antes de poder matar por primera vez
@@ -86,9 +82,7 @@ public class Impostor : Crewmate
         }
     }
 
-    /// <summary>
-    /// Encuentra el tripulante vivo más cercano (que no sea impostor).
-    /// </summary>
+    /// Encuentra el tripulante vivo más cercano 
     private Crewmate FindNearestCrewMate()
     {
         Crewmate[] allCrewMates = FindObjectsOfType<Crewmate>();
@@ -114,9 +108,7 @@ public class Impostor : Crewmate
         return nearest;
     }
 
-    /// <summary>
-    /// Mata a un tripulante.
-    /// </summary>
+    /// Mata a un tripulante
     private void KillCrewMate(Crewmate victim)
     {
         if (victim != null && !victim.IsDead)
@@ -126,9 +118,7 @@ public class Impostor : Crewmate
         }
     }
 
-    /// <summary>
-    /// Huye del cuerpo después de matar para parecer menos sospechoso.
-    /// </summary>
+    /// Huye del cuerpo después de matar para parecer menos sospechoso
     private IEnumerator FleeFromBody(Vector3 bodyPosition)
     {
         // Calcular dirección opuesta al cuerpo
@@ -153,10 +143,8 @@ public class Impostor : Crewmate
         }
     }
 
-    /// <summary>
     /// Sobrescribe el comportamiento de realizar tareas.
-    /// El impostor a veces finge hacer tareas.
-    /// </summary>
+    /// El impostor a veces finge hacer tareas
     protected override IEnumerator PerformTask()
     {
         if (targetStation == null)
@@ -195,9 +183,7 @@ public class Impostor : Crewmate
         currentState = CrewmateState.Idle;
     }
 
-    /// <summary>
-    /// Dibuja el rango de asesinato en el editor.
-    /// </summary>
+    /// Dibuja el rango de asesinato en el editor
     protected override void OnDrawGizmos()
     {
         base.OnDrawGizmos();

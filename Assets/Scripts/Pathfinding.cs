@@ -11,8 +11,8 @@ public class Pathfinding : MonoBehaviour
         gridManager = GetComponent<GridManager>();
     }
 
-    /// Encuentra un camino desde startPos hasta targetPos usando A*.
-    /// Retorna una lista de posiciones en el mundo que forman el camino.
+    /// Encuentra un camino desde startPos hasta targetPos usando A*
+    /// Retorna una lista de posiciones en el mundo que forman el camino
     public List<Vector3> FindPath(Vector3 startPos, Vector3 targetPos)
     {
         Node startNode = gridManager.NodeFromWorldPoint(startPos);

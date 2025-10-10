@@ -148,9 +148,7 @@ public class SimulationManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Crea las estaciones de tarea en posiciones aleatorias válidas.
-    /// </summary>
+    /// Crea las estaciones de tarea en posiciones aleatorias válidas
     private void SpawnTaskStations()
     {
         for (int i = 0; i < numberOfTaskStations; i++)
@@ -168,9 +166,7 @@ public class SimulationManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Crea los tripulantes en posiciones aleatorias válidas.
-    /// </summary>
+    /// Crea los tripulantes en posiciones aleatorias válidas
     private void SpawnCrewMates()
     {
         for (int i = 0; i < numberOfCrewMates; i++)
@@ -188,9 +184,7 @@ public class SimulationManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Crea los impostores en posiciones aleatorias válidas.
-    /// </summary>
+    /// Crea los impostores en posiciones aleatorias válidas
     private void SpawnImpostors()
     {
         for (int i = 0; i < numberOfImpostors; i++)
@@ -208,9 +202,7 @@ public class SimulationManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Encuentra una posición válida para hacer spawn (sin obstáculos).
-    /// </summary>
+    /// Encuentra una posición válida para hacer spawn (sin obstáculos)
     private Vector3 GetValidSpawnPosition()
     {
         Vector3 position;
@@ -236,9 +228,7 @@ public class SimulationManager : MonoBehaviour
         return position;
     }
 
-    /// <summary>
-    /// Obtiene estadísticas de la simulación.
-    /// </summary>
+    /// Obtiene estadísticas de la simulación
     public SimulationStats GetStats()
     {
         int aliveCrewMates = 0;
@@ -274,9 +264,7 @@ public class SimulationManager : MonoBehaviour
         };
     }
 
-    /// <summary>
-    /// Reinicia la simulación destruyendo todos los objetos y recreándolos.
-    /// </summary>
+    /// Reinicia la simulación destruyendo todos los objetos y recreándolos
     public void ResetSimulation()
     {
         // Destruir todos los objetos existentes
@@ -320,9 +308,7 @@ public class SimulationManager : MonoBehaviour
     }
 }
 
-/// <summary>
-/// Estructura para almacenar estadísticas de la simulación.
-/// </summary>
+/// Estructura para almacenar estadísticas de la simulación
 [System.Serializable]
 public struct SimulationStats
 {
