@@ -225,8 +225,8 @@ MonoBehaviour:
   moveSpeed: 3
   waypointReachDistance: 0.1
   waitTimeWhenAllBusy: 2
-  initialKillCooldown: 1
-  killCooldown: 1
+  initialKillCooldown: 15
+  killCooldown: 10
   killRange: 1
   fakeTaskChance: 0.7
   killAttemptInterval: 2

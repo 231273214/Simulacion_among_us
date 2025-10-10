@@ -1,13 +1,13 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-
 /// Gestor principal de la simulación
 /// Controla la creación de tripulantes, impostores y estaciones
 /// Verifica condiciones de victoria
 public class SimulationManager : MonoBehaviour
 {
     [Header("Prefabs")]
+    [SerializeField] private GameObject mapPrefab; 
     [SerializeField] private GameObject crewMatePrefab;
     [SerializeField] private GameObject impostorPrefab;
     [SerializeField] private GameObject taskStationPrefab;
@@ -83,7 +83,7 @@ public class SimulationManager : MonoBehaviour
         Debug.Log($"Simulación iniciada: {numberOfCrewMates} tripulantes, {numberOfImpostors} impostores, {numberOfTaskStations} estaciones");
     }
 
-    /// Verifica las condiciones de victoria
+    /// Verifica las condiciones de victoria.
     private void CheckWinConditions()
     {
         // Contar tripulantes vivos
@@ -148,7 +148,9 @@ public class SimulationManager : MonoBehaviour
         }
     }
 
-    /// Crea las estaciones de tarea en posiciones aleatorias válidas
+    /// <summary>
+    /// Crea las estaciones de tarea en posiciones aleatorias válidas.
+    /// </summary>
     private void SpawnTaskStations()
     {
         for (int i = 0; i < numberOfTaskStations; i++)
@@ -166,7 +168,9 @@ public class SimulationManager : MonoBehaviour
         }
     }
 
-    /// Crea los tripulantes en posiciones aleatorias válidas
+    /// <summary>
+    /// Crea los tripulantes en posiciones aleatorias válidas.
+    /// </summary>
     private void SpawnCrewMates()
     {
         for (int i = 0; i < numberOfCrewMates; i++)
@@ -184,7 +188,9 @@ public class SimulationManager : MonoBehaviour
         }
     }
 
-    /// Crea los impostores en posiciones aleatorias válidas
+    /// <summary>
+    /// Crea los impostores en posiciones aleatorias válidas.
+    /// </summary>
     private void SpawnImpostors()
     {
         for (int i = 0; i < numberOfImpostors; i++)
@@ -202,7 +208,9 @@ public class SimulationManager : MonoBehaviour
         }
     }
 
-    /// Encuentra una posición válida para hacer spawn (sin obstáculos)
+    /// <summary>
+    /// Encuentra una posición válida para hacer spawn (sin obstáculos).
+    /// </summary>
     private Vector3 GetValidSpawnPosition()
     {
         Vector3 position;
@@ -228,7 +236,9 @@ public class SimulationManager : MonoBehaviour
         return position;
     }
 
-    /// Obtiene estadísticas de la simulación
+    /// <summary>
+    /// Obtiene estadísticas de la simulación.
+    /// </summary>
     public SimulationStats GetStats()
     {
         int aliveCrewMates = 0;
@@ -264,7 +274,9 @@ public class SimulationManager : MonoBehaviour
         };
     }
 
-    /// Reinicia la simulación destruyendo todos los objetos y recreándolos
+    /// <summary>
+    /// Reinicia la simulación destruyendo todos los objetos y recreándolos.
+    /// </summary>
     public void ResetSimulation()
     {
         // Destruir todos los objetos existentes
@@ -308,7 +320,9 @@ public class SimulationManager : MonoBehaviour
     }
 }
 
-/// Estructura para almacenar estadísticas de la simulación
+/// <summary>
+/// Estructura para almacenar estadísticas de la simulación.
+/// </summary>
 [System.Serializable]
 public struct SimulationStats
 {
